@@ -1,0 +1,10 @@
+# Archivos ejecutables y de compilación
+bin/
+obj/
+*.o
+*.exe
+*.out
+
+# Archivos ocultos del sistema o del editor
+.DS_Store
+.vscode/
