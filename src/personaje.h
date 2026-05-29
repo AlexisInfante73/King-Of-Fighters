@@ -1,55 +1,102 @@
 #ifndef PERSONAJE_H
 #define PERSONAJE_H
 
+#include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp> 
 #include <string>
-#include <raylib.h> // 🌟 Ahora incluimos la librería gráfica
+#include <iostream>
 
 class Personaje {
-protected:
-    std::string nombre;
-    std::string animeOrigen;
-    int moral;          
-    int velocidadBase;  
-    bool esCorazonPuro; 
-
-    // 🎨 Atributos Gráficos Nuevos:
-    Texture2D sprite;    // Guarda la imagen .png en la memoria de la tarjeta de video
-    Vector2 posicion;    // Guarda las coordenadas X y Y en la pantalla (ej. x=400, y=300)
-    bool atacando;       // Si es true, el personaje activará un destello visual
-
 public:
-    // El constructor ahora recibe la ruta del archivo de imagen (ej. "assets/luffo.png")
-    Personaje(std::string _nombre, std::string _anime, int _moral, int _velocidad, bool _puro, const char* _rutaSprite)
-        : nombre(_nombre), animeOrigen(_anime), moral(_moral), velocidadBase(_velocidad), esCorazonPuro(_puro), atacando(false) {
-        
-        // Cargamos la imagen automáticamente al crear al personaje
-        sprite = LoadTexture(_rutaSprite); 
-        posicion = { 0.0f, 0.0f }; // Por defecto nacen en la esquina superior izquierda
+    std::string nombre;
+    sf::Texture textura;
+    sf::Sprite sprite;
+    sf::RectangleShape cajaAlternativa; 
+    int vidaActual;
+    int vidaMaxima;
+    bool tieneImagen;
+    bool tieneMusica; 
+
+    sf::Clock relojAnimacion;
+    int cuadroActual;
+    int totalCuadros;  
+    int anchoCuadro;   
+    int altoCuadro;    
+    int filaActual;    
+
+    sf::Music musica;  
+
+    Personaje(std::string name, std::string rutaImagen, std::string rutaMusica, sf::Color colorRespaldo, int filaCorte = 0) {
+        nombre = name;
+        vidaMaxima = 100;
+        vidaActual = 100;
+        tieneImagen = false;
+        tieneMusica = false;
+
+        cuadroActual = 0;
+        totalCuadros = 5;   
+        anchoCuadro = 204;  
+        altoCuadro = 300;   
+        filaActual = filaCorte; 
+
+        if (textura.loadFromFile(rutaImagen)) {
+            sprite.setTexture(textura);
+            sprite.setTextureRect(sf::IntRect(0, filaActual, anchoCuadro, altoCuadro));
+            tieneImagen = true;
+        } else {
+            std::cout << "[AVISO]: No se encontro la imagen para " << nombre << ". Usando caja de color." << std::endl;
+            cajaAlternativa.setSize(sf::Vector2f(100, 100));
+            cajaAlternativa.setFillColor(colorRespaldo);
+            cajaAlternativa.setOutlineThickness(3);
+            cajaAlternativa.setOutlineColor(sf::Color::White);
+        }
+
+        if (!rutaMusica.empty()) {
+            if (musica.openFromFile(rutaMusica)) {
+                musica.setLoop(true); 
+                tieneMusica = true;
+            } else {
+                std::cout << "[AVISO]: No se pudo cargar la musica para " << nombre << std::endl;
+            }
+        }
     }
 
-    // Destructor: En videojuegos es OBLIGATORIO liberar las imágenes de la memoria al cerrar el juego
-    virtual ~Personaje() {
-        UnloadTexture(sprite); 
+    void actualizarAnimacion() {
+        if (!tieneImagen) return; 
+
+        if (relojAnimacion.getElapsedTime().asSeconds() >= 0.15f) {
+            cuadroActual = (cuadroActual + 1) % totalCuadros;
+            sprite.setTextureRect(sf::IntRect(cuadroActual * anchoCuadro, filaActual, anchoCuadro, altoCuadro));
+            relojAnimacion.restart(); 
+        }
     }
 
-    // Getters y Setters
-    std::string getNombre() const { return nombre; }
-    std::string getAnimeOrigen() const { return animeOrigen; }
-    int getMoral() const { return moral; }
-    int getVelocidadBase() const { return velocidadBase; }
-    bool getEsCorazonPuro() const { return esCorazonPuro; }
-    
-    void setPosicion(float x, float y) { posicion = { x, y }; }
-    void setAtacando(bool estado) { atacando = estado; }
-
-    void reducirMoral(int cantidad) {
-        moral -= cantidad;
-        if (moral < 0) moral = 0;
+    void reproducirMusica() {
+        if (tieneMusica) {
+            musica.play();
+        }
     }
 
-    // ✨ El gran cambio polimórfico:
-    // En vez de "tocarNota" en texto, ahora cada clase hija tendrá la obligación de "dibujarse" en la ventana gráfica.
-    virtual void dibujar() = 0;
+    void detenerMusica() {
+        if (tieneMusica) {
+            musica.stop();
+        }
+    }
+
+    void dibujar(sf::RenderWindow& ventana, float x, float y) {
+        if (tieneImagen) {
+            sprite.setPosition(x, y);
+            ventana.draw(sprite);
+        } else {
+            cajaAlternativa.setPosition(x, y);
+            ventana.draw(cajaAlternativa);
+        }
+    }
+
+    void recibirDanio(int cantidad) {
+        vidaActual -= cantidad;
+        if (vidaActual < 0) vidaActual = 0;
+    }
 };
 
 #endif

@@ -1,123 +1,118 @@
-#include <raylib.h>
-#include <string>
-#include "vocalista.h"
-#include "guitarrista.h"
-#include "baterista.h"
-#include "banda.h"
+#include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp> 
+#include "personaje.h"
+#include <vector>
+#include <iostream>
+#include <cstdlib>
+
+struct Nota {
+    sf::RectangleShape cuerpo;
+    int carril;
+    bool activa;
+
+    Nota(int c, float posX) {
+        carril = c;
+        activa = true;
+        cuerpo.setSize(sf::Vector2f(60, 20));
+        cuerpo.setFillColor(sf::Color::Cyan);
+        cuerpo.setPosition(posX, 0);
+    }
+};
 
 int main() {
-    const int anchoPantalla = 1280;
-    const int altoPantalla = 720;
-    InitWindow(anchoPantalla, altoPantalla, "🎤 KOF ROCK - Torneo de Bandas Grafico");
-    SetTargetFPS(60);
+    // 1. CREACIÓN DE LA VENTANA (1280x720)
+    sf::RenderWindow window(sf::VideoMode(1280, 720), "Anime Rhythm Battle - Osu! Mania Mod");
+    window.setFramerateLimit(60);
 
-    // 🌟 Corregido: Pasamos "" en la ruta del archivo para que no busque nada en disco
-    Personaje* luffo = new Vocalista("Luffo", "Una Pieza", 100, 16, true, "", 85);
-    Personaje* nauto = new Vocalista("Nauto", "Naranja Ninja", 100, 15, true, "", 80); 
-    Personaje* ichigox = new Guitarrista("Ichigox", "Lejia", 100, 17, false, "", 88);
+    // Variables de estado del juego
+    int estadoJuego = 0; 
+    float carrilX[4] = { 500, 570, 640, 710 };
+    std::vector<Nota> listaNotas;
 
-    Personaje* hitorix = new Guitarrista("Hitorix", "Bochi la Piedra!", 100, 20, true, "", 95);
-    Personaje* nijikax = new Baterista("Nijikax", "Bochi la Piedra!", 100, 14, true, "", 80);
-    Personaje* ryox = new Vocalista("Ryox", "Bochi la Piedra!", 100, 13, false, "", 70);
+    (void)estadoJuego;
+    (void)carrilX;
 
-    Banda* bandaPlayer = new Banda("Los Shonen Kings");
-    bandaPlayer->agregarIntegrante(luffo);
-    bandaPlayer->agregarIntegrante(nauto);
-    bandaPlayer->agregarIntegrante(ichigox);
-    bandaPlayer->calcularSinergia();
+    // ========================================================
+    // 2. CREACIÓN DE LOS 6 PERSONAJES USANDO PUNTEROS
+    // ========================================================
+    std::vector<Personaje*> banda;
 
-    Banda* bandaRival = new Banda("Las Chicas de la Piedra");
-    bandaRival->agregarIntegrante(hitorix);
-    bandaRival->agregarIntegrante(nijikax);
-    bandaRival->agregarIntegrante(ryox);
-    bandaRival->calcularSinergia();
+    // Se crean de manera segura usando 'new Personaje(...)'
+    banda.push_back(new Personaje("Naruto", "assets/images/naruto.png", "assets/sounds/textures/musica_naruto.ogg", sf::Color::Yellow, 300));
+    banda.push_back(new Personaje("Sasuke", "assets/images/sasuke.png", "assets/sounds/textures/musica_sasuke.ogg", sf::Color::Blue, 0));
+    banda.push_back(new Personaje("Kakashi", "assets/images/kakashi.png", "assets/sounds/textures/musica_kakashi.ogg", sf::Color::Green, 0));
+    banda.push_back(new Personaje("Sakura", "assets/images/sakura.png", "assets/sounds/textures/musica_sakura.ogg", sf::Color::Magenta, 0));
+    banda.push_back(new Personaje("Itachi", "assets/images/itachi.png", "assets/sounds/textures/musica_itachi.ogg", sf::Color::Red, 0));
+    banda.push_back(new Personaje("Gaara", "assets/images/gaara.png", "assets/sounds/textures/musica_gaara.ogg", sf::Color::Cyan, 0));
 
-    int moralP1 = 100;
-    int moralP2 = 100;
-    float tiempoEfecto = 0.0f;
-    bool conciertoActivo = true;
-    std::string mensajeAlerta = "¡Presiona [J], [K] o [L] para tocar!";
+    // Al iniciar el juego, se reproduce la pista del primer personaje (Naruto)
+    banda[0]->reproducirMusica();
 
-    while (!WindowShouldClose()) {
-        if (tiempoEfecto > 0.0f) {
-            tiempoEfecto -= GetFrameTime();
-            if (tiempoEfecto <= 0.0f) {
-                for (Personaje* p : bandaPlayer->getIntegrantes()) p->setAtacando(false);
-            }
-        }
+    // ========================================================
+    // 3. BUCLE PRINCIPAL DEL JUEGO
+    // ========================================================
+    while (window.isOpen()) {
+        sf::Event event;
+        while (window.pollEvent(event)) {
+            if (event.type == sf::Event::Closed)
+                window.close();
 
-        if (conciertoActivo) {
-            int danioBase = 10;
-            int danioFinal = danioBase + (bandaPlayer->getSinergiaTotal() / 5);
+            // INTERACCIÓN: Cambiar canción presionando los números del 1 al 6
+            if (event.type == sf::Event::EventType::KeyPressed) {
+                if (event.key.code >= sf::Keyboard::Num1 && event.key.code <= sf::Keyboard::Num6) {
+                    int personajeElegido = event.key.code - sf::Keyboard::Num1;
 
-            if (IsKeyPressed(KEY_J)) {
-                bandaPlayer->getIntegrantes()[0]->setAtacando(true);
-                moralP2 -= danioFinal;
-                tiempoEfecto = 0.5f;
-                mensajeAlerta = "💥 ¡Ataque del Vocalista! Danio: " + std::to_string(danioFinal);
-            }
-            else if (IsKeyPressed(KEY_K)) {
-                bandaPlayer->getIntegrantes()[1]->setAtacando(true);
-                moralP2 -= (danioFinal - 2);
-                tiempoEfecto = 0.5f;
-                mensajeAlerta = "🎸 ¡Solo de Guitarra! Danio: " + std::to_string(danioFinal - 2);
-            }
-            else if (IsKeyPressed(KEY_L)) {
-                bandaPlayer->getIntegrantes()[2]->setAtacando(true);
-                moralP1 += 15;
-                if (moralP1 > 100) moralP1 = 100;
-                tiempoEfecto = 0.5f;
-                mensajeAlerta = "🛡️ ¡Ritmo solido! Tu banda recupero +15 de moral.";
-            }
-
-            if (moralP2 <= 0) {
-                moralP2 = 0;
-                conciertoActivo = false;
-                mensajeAlerta = "🏆 ¡VICTORIA TOTAL! Dominaste el escenario.";
-            }
-            
-            if (IsKeyPressed(KEY_J) || IsKeyPressed(KEY_K) || IsKeyPressed(KEY_L)) {
-                if (conciertoActivo) {
-                    int danioRival = 8 + (bandaRival->getVelocidadBanda() / 40);
-                    moralP1 -= danioRival;
-                    if (moralP1 <= 0) {
-                        moralP1 = 0;
-                        conciertoActivo = false;
-                        mensajeAlerta = "💀 GAME OVER. Tu banda fue abucheada.";
+                    // 1. Apagamos la música de todos los personajes para que no se empalmen
+                    for (size_t i = 0; i < banda.size(); i++) {
+                        banda[i]->detenerMusica();
                     }
+
+                    // 2. Encendemos la música del elegido (¡Ya corregida la variable aquí!)
+                    banda[personajeElegido]->reproducirMusica();
+                    std::cout << "Cambiando a la musica de: " << banda[personajeElegido]->nombre << std::endl;
                 }
             }
         }
 
-        BeginDrawing();
-            ClearBackground(DARKGRAY);
+        // ========================================================
+        // 4. ACTUALIZAR LAS ANIMACIONES DE LA BANDA (LÓGICA)
+        // ========================================================
+        for (size_t i = 0; i < banda.size(); i++) {
+            banda[i]->actualizarAnimacion();
+        }
 
-            bandaPlayer->dibujarBanda(100.0f, 350.0f);  
-            bandaRival->dibujarBanda(750.0f, 350.0f);   
-
-            DrawText(bandaPlayer->getNombreBanda().c_str(), 50, 40, 20, LIGHTGRAY);
-            DrawRectangle(50, 70, 400, 30, RED);
-            DrawRectangle(50, 70, moralP1 * 4, 30, LIME);
-            DrawText(TextFormat("%d / 100", moralP1), 60, 75, 18, BLACK);
-
-            DrawText(bandaRival->getNombreBanda().c_str(), 830, 40, 20, LIGHTGRAY);
-            DrawRectangle(830, 70, 400, 30, RED);
-            DrawRectangle(830, 70, moralP2 * 4, 30, ORANGE);
-            DrawText(TextFormat("%d / 100", moralP2), 840, 75, 18, BLACK);
-
-            DrawRectangle(50, 620, 1180, 60, Fade(BLACK, 0.6f));
-            DrawText(mensajeAlerta.c_str(), 80, 640, 22, WHITE);
-            
-            if (conciertoActivo) {
-                DrawText("Controles: [J] Vocalista | [K] Guitarra | [L] Bateria", 400, 20, 18, GOLD);
-            } else {
-                DrawText("Presiona [ESC] para salir del evento", 480, 20, 18, RED);
+        // Lógica de caída para las notas musicales
+        for (size_t i = 0; i < listaNotas.size(); i++) {
+            if (listaNotas[i].activa) {
+                listaNotas[i].cuerpo.move(0, 5); 
             }
-        EndDrawing();
+        }
+
+        // ========================================================
+        // 5. RENDERIZADO (DIBUJAR EN PANTALLA)
+        // ========================================================
+        window.clear(sf::Color(25, 25, 25)); 
+
+        // Dibuja los personajes alineados horizontalmente uno al lado del otro
+        for (size_t i = 0; i < banda.size(); i++) {
+            banda[i]->dibujar(window, i * 180 + 50, 350);
+        }
+
+        // Dibuja las notas rítmicas por encima
+        for (size_t i = 0; i < listaNotas.size(); i++) {
+            if (listaNotas[i].activa) {
+                window.draw(listaNotas[i].cuerpo);
+            }
+        }
+
+        window.display();
     }
 
-    delete bandaPlayer;
-    delete bandaRival;
-    CloseWindow();
+    // Al cerrar el juego apagamos la música y limpiamos la memoria
+    for (size_t i = 0; i < banda.size(); i++) {
+        banda[i]->detenerMusica();
+        delete banda[i]; 
+    }
+
     return 0;
 }
